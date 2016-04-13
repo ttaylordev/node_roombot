@@ -1,7 +1,7 @@
 const WebSocketClient = require('websocket').client;
 const client = new WebSocketClient();
 
-const channel = 'simulation:fNrFkA==';
+const channel = 'simulation:wmYNlQ==';
 const roombaIP = 'roombots.mx.com';
 
 const phxJoin = function (connection) {
@@ -13,7 +13,6 @@ const phxJoin = function (connection) {
   };
 
   if (connection.connected) {
-    console.log('Sending phx_join message to roombot');
     connection.sendUTF(JSON.stringify(initMessage));
   }
 };
@@ -22,21 +21,35 @@ const heartbeat = function (connection) {
   console.log('Heart Beating');
 
   const heartbeatMessage = {
-    topic: channel,
+    topic: 'phoenix',
     event: 'heartbeat',
     payload: {},
     ref: 10
   };
 
-  connection.sendUTF(JSON.stringify(heartbeatMessage));
+  setInterval(function () {
+    connection.sendUTF(JSON.stringify(heartbeatMessage));
+  }, 1000)
 };
 
 const drive = function (connection) {
-  console.log('Driving!');
-
   connection.on('message', function (message) {
-    console.log(message);
-  })
+    const response = JSON.parse(message.utf8Data);
+
+    if (response.event === 'phx_reply' && response.ref === 1) {
+      const driveMessage = {
+        topic: channel,
+        event: 'drive',
+        ref: 15,
+        payload: {
+          velocity: 100,
+          radius: 50
+        }
+      };
+
+      connection.sendUTF(JSON.stringify(driveMessage));
+    }
+  });
 }
 
 client.on('connectFailed', function (error) {
